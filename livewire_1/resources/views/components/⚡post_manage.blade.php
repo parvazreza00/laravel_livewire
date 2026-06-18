@@ -2,25 +2,31 @@
 
 use Livewire\Component;
 use Livewire\Attributes\Computed;
+use Livewire\WithPagination;
 use App\Models\Post;
 
-
 new class extends Component {
+    use WithPagination;
 
     public $openForm = false;
     public $openEditForm = false;
-    public $title, $description,$postId;
+    public $title, $description, $postId;
+    public $search = '';
 
     #[Computed]
-    public function posts(){
-        return Post::latest()->get();
+    public function posts()
+    {
+        return Post::where('title', 'LIKE', "%{$this->search}%")
+            ->orWhere('description', 'LIKE', "%{$this->search}%")
+            ->latest()
+            ->paginate(5);
     }
 
     public function showForm()
     {
         $this->openForm = true;
         $this->openEditForm = false;
-        $this->reset('title','description');
+        $this->reset('title', 'description');
     }
     public function closeForm()
     {
@@ -59,7 +65,8 @@ new class extends Component {
         $this->openForm = false;
     }
 
-    public function updateForm() {
+    public function updateForm()
+    {
         $post = Post::find($this->postId);
         // dd($post);
         $post->update([
@@ -67,11 +74,12 @@ new class extends Component {
             'description' => $this->description,
         ]);
         $this->reset();
-
     }
 
-    public function deletePost($id){
-        Post::find($id)->delete();    }
+    public function deletePost($id)
+    {
+        Post::find($id)->delete();
+    }
 };
 ?>
 
@@ -91,6 +99,10 @@ new class extends Component {
 
     <div>
         <button class="btn btn-primary my-2" wire:click="showForm">Create</button>
+        <br>
+        <label for="search">Search</label>
+        <input type="text" wire:model.live="search" class="form-control">
+        <br>
     </div>
 
     <table class="table table-bordered">
@@ -103,26 +115,30 @@ new class extends Component {
             </tr>
         </thead>
         <tbody>
-            @if ($this->posts->count() > 0)
-                @foreach ($this->posts as $key => $post)
+            @if ($this->posts()->count() > 0)
+                @foreach ($this->posts() as $key => $post)
                     <tr class="text-center">
                         <th scope="row">{{ $key + 1 }}</th>
                         <td>{{ $post->title }}</td>
                         <td class="w-75">{{ $post->description }}</td>
                         <td>
-                            <button class="btn btn-danger mb-1" wire:confirm="Are you sure to delete?" wire:click="deletePost({{ $post->id }})">Delete</button>
-                            <button class="btn btn-info"  wire:click="editPost({{ $post->id }})">Edit</button>
+                            <button class="btn btn-danger mb-1" wire:confirm="Are you sure to delete?"
+                                wire:click="deletePost({{ $post->id }})">Delete</button>
+                            <button class="btn btn-info" wire:click="editPost({{ $post->id }})">Edit</button>
                         </td>
                     </tr>
                 @endforeach
             @else
                 <tr class="text-center">
-                    <td>There have no data</td>
+                    <td colspan="4">There have no data</td>
                 </tr>
             @endif
 
 
         </tbody>
     </table>
+    <div class="d-flex justify-content-end mt-2">
+        {{ $this->posts()->links('pagination::bootstrap-5') }}
+    </div>
 
 </div>
