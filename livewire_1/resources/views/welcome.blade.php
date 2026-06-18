@@ -4,7 +4,8 @@
 
     {{-- <livewire:counter /> --}}
     {{-- <livewire:registration /> --}}
-    <livewire:invoice lazy  />
+    {{-- <livewire:invoice lazy  /> --}}
+    <livewire:post_manage/>
 
 
 @endsection

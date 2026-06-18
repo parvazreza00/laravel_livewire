@@ -3,6 +3,7 @@
 use Livewire\Component;
 use Livewire\WithFileUploads;
 use App\Models\Invoice;
+use App\Models\Category;
 use Livewire\WithPagination;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Url;
@@ -15,6 +16,7 @@ new class extends Component {
         $payment_method,
         $gender,
         $invoice_file,
+        $datevalue,
         $hobbies = [];
     // public $invoices;
     public $condition = false;
@@ -22,6 +24,7 @@ new class extends Component {
     protected $rules = [
         'invoice_number' => ['required'],
         'amount' => ['required', 'numeric'],
+        'datevalue' => ['required', 'date'],
         'invoice_file' => ['required', 'file', 'mimes:pdf', 'max:2048'],
     ];
 
@@ -38,9 +41,10 @@ new class extends Component {
         Invoice::create([
             'invoice_number' => $this->invoice_number,
             'amount' => $this->amount,
+            'date' => $this->datevalue,
             'invoice_file' => $invoiceFile,
         ]);
-        $this->reset('invoice_number', 'amount', 'invoice_file');
+        $this->reset();
 
         // $this->dispatch('sweet.alert', message: 'Invoice Generated successfully!');
         // $this->mount();
@@ -68,7 +72,7 @@ new class extends Component {
 
     public function resetForm()
     {
-        $this->reset('invoice_number', 'amount', 'invoice_file');
+        $this->reset('invoice_number', 'amount', 'invoice_file', 'datevalue');
         // $this->invoice_number = '';
         // $this->amount = '';
         // $this->invoice_file = '';
@@ -85,6 +89,12 @@ new class extends Component {
         $this->condition = !$this->condition;
     }
 
+    public $categories = [];
+    public function loadCategory()
+    {
+        $this->categories = Category::all();
+    }
+
     // public function placeholder()
     // {
     //     return <<<'HTML'
@@ -99,9 +109,20 @@ new class extends Component {
 };
 ?>
 
-<div>
+<div wire:init="loadCategory">
     <form action="" wire:submit="submitForm">
         <div class="row">
+            <div class="col-md-2">
+                <label for="category">Category Name</label>
+            </div>
+            <div class="col-md-10 mb-3">
+                <select name="category" id="" class="form-select form-control">
+                    <option value="">Select Category</option>
+                    @foreach ($categories as $item)
+                        <option value="">{{ $item->name }}</option>
+                    @endforeach
+                </select>
+            </div>
             <div class="col-md-2">
                 <label for="invoice_number">Invoice Number</label>
             </div>
@@ -132,6 +153,18 @@ new class extends Component {
                 @enderror
             </div>
 
+            <div class="col-md-2">
+                <label for="date"> Date</label>
+            </div>
+            <div class="col-md-10 mb-3">
+                <div wire:ignore>
+                    <input type="text" id="datepicker" class="form-control">
+                </div>
+                @error('datevalue')
+                    <span class="text-danger">{{ $message }}</span>
+                @enderror
+            </div>
+
             <div class="col-md-12 text-end">
                 <button class="btn btn-primary">Submit</button>
                 <button class="btn btn-secondary" wire:click.prevent="resetForm">Reset</button>
@@ -142,14 +175,16 @@ new class extends Component {
                 <label for="tertms">Terms and Condition!</label>
             </div>
 
-            @if($this->condition)
-            <div class="p-2" style="background: rgb(207, 226, 207)"
-            wire:transition.opacity.duration.'500ms'>
-                <p>Lorem ipsum dolor sit amet consectetur adipisicing elit. Velit nisi molestias amet fuga suscipit ea
-                    ipsum, maxime vero est officiis et aut, repellat voluptatibus? Aliquid totam magnam voluptatum, unde
-                    molestiae iusto, saepe culpa praesentium nemo similique quae. Aliquam, perferendis? Possimus sed,
-                    natus voluptatibus quasi facilis ea nihil quaerat qui omnis.</p>
-            </div>
+            @if ($this->condition)
+                <div class="p-2" style="background: rgb(207, 226, 207)" wire:transition.opacity.duration.'500ms'>
+                    <p>Lorem ipsum dolor sit amet consectetur adipisicing elit. Velit nisi molestias amet fuga suscipit
+                        ea
+                        ipsum, maxime vero est officiis et aut, repellat voluptatibus? Aliquid totam magnam voluptatum,
+                        unde
+                        molestiae iusto, saepe culpa praesentium nemo similique quae. Aliquam, perferendis? Possimus
+                        sed,
+                        natus voluptatibus quasi facilis ea nihil quaerat qui omnis.</p>
+                </div>
             @endif
 
 
@@ -170,7 +205,9 @@ new class extends Component {
                         <th>SL</th>
                         <th>Invoice Number</th>
                         <th>Invoice Amount</th>
+                        <th>Date</th>
                         <th>PDF file</th>
+                        <th>Status</th>
                         <th>Delete</th>
                     </tr>
                 </thead>
@@ -180,8 +217,20 @@ new class extends Component {
                             <td>{{ $key + 1 }}</td>
                             <td>{{ $item->invoice_number }}</td>
                             <td>{{ $item->amount }}</td>
+                            <td>{{ \Carbon\Carbon::parse($item->date)->format('d M,Y') }}</td>
                             <td><button wire:click="downloadFile({{ $item->id }})"
                                     class="btn btn-primary">Download</button></td>
+
+                            <td wire:poll.20s>
+                                @if ($item->status === 'pending')
+                                    <span class="badge bg-danger p-2 rounded">{{ $item->status }}</span>
+                                @elseif($item->status === 'approved')
+                                    <span class="badge bg-success p-2 rounded">{{ $item->status }}</span>
+                                @elseif($item->status === 'sumbit')
+                                    <span class="badge bg-info p-2 rounded">{{ $item->status }}</span>
+                                @endif
+                            </td>
+
                             <td><button wire:click="delete({{ $item->id }})" class="btn btn-danger"
                                     wire:confirm.prompt="Are you sure?\n\nType DELETE to confirm|DELETE">delete</button>
                             </td>
@@ -195,3 +244,24 @@ new class extends Component {
         {{ $this->invoices->links('pagination::bootstrap-5') }}
     </div>
 </div>
+
+@script
+<script>
+    function initDatePicker() {
+        $("#datepicker").datepicker({
+            dateFormat: "yy-mm-dd",
+            showWeek: true,
+            firstDay: 1,
+            onSelect: function(dateText) {
+                $wire.set('datevalue', dateText);
+            }
+        });
+    }
+
+    initDatePicker();
+
+    Livewire.hook('morphed', () => {
+        initDatePicker();
+    });
+</script>
+@endscript

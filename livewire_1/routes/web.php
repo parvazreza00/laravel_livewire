@@ -4,7 +4,7 @@ use App\Http\Controllers\RegistrationController;
 use App\Http\Controllers\PageController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/home', function () {
+Route::get('/', function () {
     return view('welcome');
 })->name('home');
 

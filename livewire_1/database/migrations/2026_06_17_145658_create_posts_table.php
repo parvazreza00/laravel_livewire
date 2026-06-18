@@ -11,13 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('invoices', function (Blueprint $table) {
+        Schema::create('posts', function (Blueprint $table) {
             $table->id();
-            $table->string('invoice_number')->nullable();
-            $table->string('amount')->nullable();
-            $table->date('date')->nullable();
-            $table->string('invoice_file')->nullable();
-            $table->enum('status',['approved','sumbit','pending'])->default('pending');
+            $table->string('title')->nullable();
+            $table->text('description')->nullable();
             $table->timestamps();
         });
     }
@@ -27,6 +24,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('invoices');
+        Schema::dropIfExists('posts');
     }
 };
